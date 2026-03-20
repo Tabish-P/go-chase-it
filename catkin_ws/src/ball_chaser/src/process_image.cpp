@@ -18,7 +18,7 @@ void drive_robot(float lin_x, float ang_z)
 }
 
 // This callback function continuously executes and reads the image data
-void process_image_callback(const sensor_msgs::Image img)
+void process_image_callback(const sensor_msgs::ImageConstPtr& img)
 {
 
     int white_pixel = 255;
@@ -31,9 +31,9 @@ void process_image_callback(const sensor_msgs::Image img)
     drive_robot(0.0, 0.0); // stop the robot if no white ball is found
     
     for (size_t i = 0; i < img->height * img->step; i+=3) {
-        int red = img.data[i];
-        int green = img.data[i + 1];
-        int blue = img.data[i + 2];
+        int red = img->data[i];
+        int green = img->data[i + 1];
+        int blue = img->data[i + 2];
 
         // check if you found a white pixel
         if (red == white_pixel && green == white_pixel && blue == white_pixel) {
