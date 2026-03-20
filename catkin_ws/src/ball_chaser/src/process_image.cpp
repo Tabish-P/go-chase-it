@@ -27,31 +27,30 @@ void process_image_callback(const sensor_msgs::Image img)
     // Then, identify if this pixel falls in the left, mid, or right side of the image
     // Depending on the white ball position, call the drive_bot function and pass velocities to it
     // Request a stop when there's no white ball seen by the camera
+    
+    drive_robot(0.0, 0.0); // stop the robot if no white ball is found
+    
+    for (size_t i = 0; i < img->height * img->step; i+=3) {
+        int red = img.data[i];
+        int green = img.data[i + 1];
+        int blue = img.data[i + 2];
 
-    int left_bound = img.width / 3;
-    int right_bound = 2 * img.width / 3;
-
-    for (int i = 0; i < img.height * img.width * img.step; i += 3)
-    {
-        if (img.data[i] == white_pixel && img.data[i + 1] == white_pixel && img.data[i + 2] == white_pixel)
-        {
-            int pixel_index = i / 3;
-            int column_index = pixel_index % img.width;
-
-            if (column_index < left_bound)
-            {
-                drive_robot(0.5, 0.5); // Move left
+        // check if you found a white pixel
+        if (red == white_pixel && green == white_pixel && blue == white_pixel) {
+            int pixel_position = i % img->step; // get the horizontal position of the pixel
+            if (pixel_position < img->step / 3) {
+                // left side
+                drive_robot(0.5, 0.5); // move forward and turn left
+            } else if (pixel_position < 2 * img->step / 3) {
+                // middle
+                drive_robot(0.5, 0.0); // move forward
+            } else {
+                // right side
+                drive_robot(0.5, -0.5); // move forward and turn right
             }
-            else if (column_index < right_bound)
-            {
-                drive_robot(0.5, 0.0); // Move forward
-            }
-            else
-            {
-                drive_robot(0.5, -0.5); // Move right
-            }
-            return; // Exit after finding the first white pixel
+            return; // exit the function after finding the first white pixel
         }
+
     }
 }
 
