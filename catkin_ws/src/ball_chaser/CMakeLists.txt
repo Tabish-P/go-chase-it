@@ -204,3 +204,27 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+### TODO:
+
+### Add the add_service_files dependency which defines the DriveToTarget.srv file
+### Add the generate_messages dependency
+### Add include_directories dependency
+### Add the add_executable, target_link_libraries, and add_dependencies dependency for your drive_bot.cppscript
+add_service_files(
+  FILES
+  DriveToTarget.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
+
+include_directories(
+  ${catkin_INCLUDE_DIRS}
+)
+
+add_executable(drive_bot src/drive_bot.cpp)
+target_link_libraries(drive_bot ${catkin_LIBRARIES})
+add_dependencies(drive_bot ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
