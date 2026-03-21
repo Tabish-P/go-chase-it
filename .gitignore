@@ -1,2 +1,4 @@
 build/
 devel/
+.DS_Store
+**/.DS_Store
