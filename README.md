@@ -6,6 +6,8 @@ This repository contains the **Go Chase It** project from the Udacity Robotics S
 
 In this project, a differential-drive robot is spawned in Gazebo with a camera and lidar. A C++ perception node analyzes camera images to detect a white ball and commands the robot to chase it through a ROS service.
 
+https://github.com/user-attachments/assets/d0c05920-3dd2-4328-8ee4-d3082408a040
+
 ## Implemented Packages
 
 The workspace includes these ROS packages under `catkin_ws/src`:
