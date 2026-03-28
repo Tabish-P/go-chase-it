@@ -6,6 +6,8 @@ This repository contains the **Go Chase It** project from the Udacity Robotics S
 
 In this project, a differential-drive robot is spawned in Gazebo with a camera and lidar. A C++ perception node analyzes camera images to detect a white ball and commands the robot to chase it through a ROS service.
 
+https://github.com/user-attachments/assets/9db8994e-2ed0-4924-9713-d940e73f2f37
+
 ## Recent Updates
 
 - Added perimeter boundary walls in the active world to keep the simulation fully enclosed.
