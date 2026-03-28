@@ -1,9 +1,40 @@
 #include "ros/ros.h"
 #include "ball_chaser/DriveToTarget.h"
 #include <sensor_msgs/Image.h>
+#include <cmath>
+#include <algorithm>
 
 // Define a global client that can request services
 ros::ServiceClient client;
+
+namespace {
+constexpr int kWhiteThreshold = 200;
+constexpr float kMaxLinearSpeed = 0.6F;
+constexpr float kMinLinearSpeed = 0.12F;
+constexpr float kMaxAngularSpeed = 0.8F;
+constexpr float kTurnGain = 1.2F;
+constexpr float kCommandEpsilon = 0.01F;
+
+float last_linear_x = 0.0F;
+float last_angular_z = 0.0F;
+
+float clamp_value(float value, float minimum, float maximum)
+{
+    return std::max(minimum, std::min(maximum, value));
+}
+
+void drive_robot_if_changed(float lin_x, float ang_z)
+{
+    const bool linear_changed = std::fabs(lin_x - last_linear_x) > kCommandEpsilon;
+    const bool angular_changed = std::fabs(ang_z - last_angular_z) > kCommandEpsilon;
+
+    if (linear_changed || angular_changed) {
+        drive_robot(lin_x, ang_z);
+        last_linear_x = lin_x;
+        last_angular_z = ang_z;
+    }
+}
+}  // namespace
 
 // This function calls the command_robot service to drive the robot in the specified direction
 void drive_robot(float lin_x, float ang_z)
@@ -20,38 +51,53 @@ void drive_robot(float lin_x, float ang_z)
 // This callback function continuously executes and reads the image data
 void process_image_callback(const sensor_msgs::ImageConstPtr& img)
 {
-
-    int white_pixel = 255;
-
-    // TODO: Loop through each pixel in the image and check if there's a bright white one
-    // Then, identify if this pixel falls in the left, mid, or right side of the image
-    // Depending on the white ball position, call the drive_bot function and pass velocities to it
-    // Request a stop when there's no white ball seen by the camera
-    
-    drive_robot(0.0, 0.0); // stop the robot if no white ball is found
-    
-    for (size_t i = 0; i < img->height * img->step; i+=3) {
-        int red = img->data[i];
-        int green = img->data[i + 1];
-        int blue = img->data[i + 2];
-
-        // check if you found a white pixel
-        if (red == white_pixel && green == white_pixel && blue == white_pixel) {
-            int pixel_position = i % img->step; // get the horizontal position of the pixel
-            if (pixel_position < img->step / 3) {
-                // left side
-                drive_robot(0.5, 0.5); // move forward and turn left
-            } else if (pixel_position < 2 * img->step / 3) {
-                // middle
-                drive_robot(0.5, 0.0); // move forward
-            } else {
-                // right side
-                drive_robot(0.5, -0.5); // move forward and turn right
-            }
-            return; // exit the function after finding the first white pixel
-        }
-
+    if (img->width == 0 || img->height == 0 || img->step < img->width * 3) {
+        drive_robot_if_changed(0.0F, 0.0F);
+        return;
     }
+
+    // Use centroid of bright pixels for stable steering instead of first-pixel detection.
+    std::size_t white_pixel_count = 0;
+    double white_pixel_column_sum = 0.0;
+
+    for (std::size_t row = 0; row < img->height; ++row) {
+        const std::size_t row_start = row * img->step;
+        for (std::size_t col = 0; col < img->width; ++col) {
+            const std::size_t pixel_index = row_start + (col * 3);
+            const int red = img->data[pixel_index];
+            const int green = img->data[pixel_index + 1];
+            const int blue = img->data[pixel_index + 2];
+
+            if (red >= kWhiteThreshold && green >= kWhiteThreshold && blue >= kWhiteThreshold) {
+                ++white_pixel_count;
+                white_pixel_column_sum += static_cast<double>(col);
+            }
+        }
+    }
+
+    if (white_pixel_count == 0) {
+        drive_robot_if_changed(0.0F, 0.0F);
+        return;
+    }
+
+    const double image_center = static_cast<double>(img->width) / 2.0;
+    const double centroid_col = white_pixel_column_sum / static_cast<double>(white_pixel_count);
+    const double normalized_error = (image_center - centroid_col) / image_center;
+
+    float angular_z = static_cast<float>(kTurnGain * normalized_error);
+    angular_z = clamp_value(angular_z, -kMaxAngularSpeed, kMaxAngularSpeed);
+
+    const double visibility_ratio = static_cast<double>(white_pixel_count) /
+        static_cast<double>(img->width * img->height);
+
+    float linear_x = static_cast<float>(kMaxLinearSpeed - (visibility_ratio * 2.5));
+    linear_x = clamp_value(linear_x, kMinLinearSpeed, kMaxLinearSpeed);
+
+    // Slow forward motion when turn error is high to prevent overshoot.
+    const float turn_penalty = 1.0F - (0.6F * clamp_value(static_cast<float>(std::fabs(normalized_error)), 0.0F, 1.0F));
+    linear_x *= turn_penalty;
+
+    drive_robot_if_changed(linear_x, angular_z);
 }
 
 int main(int argc, char** argv)
