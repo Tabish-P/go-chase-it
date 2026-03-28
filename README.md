@@ -6,7 +6,11 @@ This repository contains the **Go Chase It** project from the Udacity Robotics S
 
 In this project, a differential-drive robot is spawned in Gazebo with a camera and lidar. A C++ perception node analyzes camera images to detect a white ball and commands the robot to chase it through a ROS service.
 
-https://github.com/user-attachments/assets/d0c05920-3dd2-4328-8ee4-d3082408a040
+## Recent Updates
+
+- Added perimeter boundary walls in the active world to keep the simulation fully enclosed.
+- Lowered white-ball detection threshold from 255 to 200 for more reliable detection under varied lighting.
+- Improved `process_image` control logic to use centroid-based steering and smoother velocity commands while approaching the ball.
 
 ## Implemented Packages
 
@@ -94,7 +98,7 @@ roslaunch ball_chaser ball_chaser.launch
 ## Expected Behavior
 
 - The robot camera detects the white ball.
-- The `process_image` node identifies ball position (left/center/right).
+- The `process_image` node detects bright ball pixels (threshold 200) and computes the ball centroid in the image.
 - The node requests `/ball_chaser/command_robot` service.
-- The `drive_bot` node publishes motion commands to `/cmd_vel`.
-- The robot turns/moves to chase the ball.
+- The `drive_bot` node publishes smooth linear and angular commands to `/cmd_vel`.
+- The robot steers proportionally toward the ball, slows while turning, and stops if the ball is not visible.
