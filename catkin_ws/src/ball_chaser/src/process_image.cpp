@@ -7,6 +7,9 @@
 // Define a global client that can request services
 ros::ServiceClient client;
 
+// Forward declaration for helper logic that calls this function.
+void drive_robot(float lin_x, float ang_z);
+
 namespace {
 constexpr int kWhiteThreshold = 200;
 constexpr float kMaxLinearSpeed = 0.6F;
